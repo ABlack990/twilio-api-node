@@ -11,7 +11,8 @@ const httpsOptions = {
   auth: `${accountSid}:${authToken}`,
   headers: {
     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-    'Accept': '*/*'
+    'Accept': '*/*',
+    'Accept-Encoding': 'gzip, deflate, br'
   }
 }
 
@@ -42,6 +43,30 @@ const createUserBinding = (identifier, bindingType, targetAddress) => {
   });
 }
 
+const getAllUserBindings = () => {
+  Object.assign(httpsOptions, {
+    path: `/v1/Services/${notifyServiceSid}/Bindings`,
+    method: 'GET'
+  })
+
+  const request = https.request(httpsOptions, (res) => {
+    res.setEncoding("utf-8")
+    console.log(res.statusCode, res.statusMessage);
+
+    res.on('data', (data) => {
+      const dataResponse = JSON.parse(data);
+      const userBindings = dataResponse.bindings;
+      console.log(userBindings);
+    })
+  });
+
+  request.end();
+
+  request.on('error', (err) => {
+    console.error(`Error: ${err.message}`);
+  })
+}
+
 const sendNotification = (targetIdentifier, message) => {
   Object.assign(httpsOptions, {
     path: `/v1/Services/${notifyServiceSid}/Notifications`,
@@ -49,6 +74,25 @@ const sendNotification = (targetIdentifier, message) => {
   });
 
   // Do some other stuff
+  const requestData = {
+    Identity: targetIdentifier,
+    Body: message
+  }
+
+  const request = https.request(httpsOptions, (res) => {
+    console.log(res.statusCode, res.statusMessage);
+    res.resume();
+  });
+
+  request.write(new URLSearchParams(requestData).toString());
+
+  request.end();
+
+  request.on('error', (err) => {
+    console.error(`Error: ${err.message}`);
+  });
 }
 
-createUserBinding("blacka-01", "sms", targetPhoneNumber);
+// getAllUserBindings();
+// createUserBinding("blacka-01", "sms", targetPhoneNumber);
+// sendNotification("blacka-01", "Hello, world!");
